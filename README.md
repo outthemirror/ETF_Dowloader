@@ -1,7 +1,7 @@
 # ETF_Dowloader
 Functions to mass download ETF tickers, price, and volume data from an exchange or an country.
 
-##Example Usage
+## Example Usage
 
 Scrape all ETF tickers listed NYSE from Interactive Brokers (IB). Valid exchange strings can be found at Interactive Brokers's website: https://www.interactivebrokers.com/en/index.php?f=1562&p=north_america
     
