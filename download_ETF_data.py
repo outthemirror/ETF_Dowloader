@@ -33,17 +33,18 @@ def get_country_ETF_tickers(exchanges: List[str]) -> DataFrame:
     """
     ETFs = pd.DataFrame()
     for exchange in exchanges:
+        print(f'Scraping tickers for ETFs listed in {exchange}...')
         ETFs = ETFs.append(get_exchange_ETF_tickers(exchange))
     ETFs = ETFs.rename(columns={'Fund Description (Click link for more details)': 'fund_desp', 'Symbol': 'ticker'}) \
         .drop(columns=['IB Symbol', 'Currency'])
     return ETFs
 
 
-def download_ETF_hist(ticker: str, sleep_sec: float) -> DataFrame:
+def download_ETF_hist(ticker: str, sleep_sec=1) -> DataFrame:
     """
     sleep_sec: seconds to pause after downloading the ticker's data
     """
-    print(ticker)
+    print(f'Downloading {ticker} price and volume...')
     ETF = yf.Ticker(ticker)
     ETF_price = ETF.history(period='max', auto_adjust=True)
     ETF_price = ETF_price.assign(date=ETF_price.index,
@@ -54,10 +55,11 @@ def download_ETF_hist(ticker: str, sleep_sec: float) -> DataFrame:
     return ETF_price[['date', 'ticker', 'r', 'volume']].dropna(subset=['r', 'volume'])
 
 
-def get_ETF_holdings(ticker: str) -> str:
+def get_ETF_holdings(ticker: str, sleep_sec=1) -> str:
     """
     This function scraps ETF holdings  from Yahoo finance
     """
+    print(f'Downloading {ticker} holdings...')
     html = requests.get(f'https://finance.yahoo.com/quote/{ticker}/holdings?p={ticker}').text
     soup = BeautifulSoup(html, 'lxml')
     try:
@@ -65,14 +67,15 @@ def get_ETF_holdings(ticker: str) -> str:
         ETF_holdings = '|'.join([row.find('td').text for row in table_rows])
     except:
         ETF_holdings = np.nan
-    time.sleep(1)
+    time.sleep(sleep_sec)
     return ETF_holdings
 
 
-def get_ETF_info(ticker: str) -> list:
+def get_ETF_sum_AUM(ticker: str, sleep_sec=1) -> list:
     """
-    This function downloads other ETF info using yfinance get_info method.
+    This function downloads  ETF summary and AUM using yfinance get_info method.
     """
+    print(f'Downloading {ticker} summary and AUM...')
     ETF = yf.Ticker(ticker)
     try:
         ETF_info = ETF.get_info()
@@ -81,31 +84,7 @@ def get_ETF_info(ticker: str) -> list:
     except:
         ETF_summary = np.nan
         ETF_mktcap = np.nan
-    time.sleep(1)
+    time.sleep(sleep_sec)
     return [ETF_summary, ETF_mktcap]
 
 
-# download ETF  summary, and holdings in Canada
-def get_CA_ETF_tickers() -> DataFrame:
-    ETF_info_CA = get_country_ETF_tickers(['pure', 'chix_ca', 'omega', 'tse'])
-    ETF_info_CA = ETF_info_CA \
-        .assign(ticker=ETF_info_CA.ticker.str.replace('.', '-'))
-    ETF_info_CA = ETF_info_CA.assign(ticker=ETF_info_CA.ticker + '.TO') \
-        .drop_duplicates()
-    return ETF_info_CA.assign(fund_summary=[get_ETF_info(ticker)[0] for ticker in ETF_info_CA.ticker]) \
-        .assign(fund_holdings=[get_ETF_holdings(ticker) for ticker in ETF_info_CA.ticker])
-
-# download ETF  summary, and holdings in US
-def get_US_ETF_tickers() -> DataFrame:
-    ETF_info_US = get_country_ETF_tickers(['chx', 'bex', 'amex', 'arca']) \
-        .drop_duplicates()
-    return ETF_info_US.assign(fund_summary=[get_ETF_info(ticker)[0] for ticker in ETF_info_US.ticker]) \
-        .assign(fund_holdings=[get_ETF_holdings(ticker) for ticker in ETF_info_US.ticker])
-
-# download Canada ETF price and volume from yahoo finance
-def get_CA_ETF() -> DataFrame:
-    return pd.concat([download_ETF_hist(ETF, 1) for ETF in get_CA_ETF_tickers().ticker])
-
-# download US ETF price and volume from yahoo finance
-def get_US_ETF() -> DataFrame:
-    return pd.concat([download_ETF_hist(ETF, 1) for ETF in get_US_ETF_tickers().ticker])
