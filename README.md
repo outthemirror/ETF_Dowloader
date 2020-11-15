@@ -1,5 +1,5 @@
 # ETF Dowloader
-Functions to mass download ETF tickers, price, and volume data from an exchange or an country.
+Functions to mass download ETF tickers, price, and volume data from an exchange or a country.
 
 ## Example Usage
 
